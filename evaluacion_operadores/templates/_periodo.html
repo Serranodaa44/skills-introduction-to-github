@@ -1,0 +1,7 @@
+<form method="get" class="filtros">
+  <label>Periodo
+    <input name="periodo" list="lista-periodos" value="{{ periodo }}" onchange="this.form.submit()">
+    <datalist id="lista-periodos">{% for p in periodos %}<option value="{{ p }}">{% endfor %}</datalist>
+  </label>
+  <button>Ver</button>
+</form>

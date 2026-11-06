@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block titulo %}Productividad{% endblock %}
+{% block contenido %}
+<div class="encabezado">
+  <h1>Cálculo de productividad</h1>
+  {% include "_periodo.html" %}
+</div>
+<form method="post" class="tarjeta formulario-linea">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <input type="hidden" name="periodo" value="{{ periodo }}">
+  <h2>Capturar producción · {{ periodo }}</h2>
+  <label>Empleado
+    <select name="empleado_id" required>
+      {% for e in empleados %}<option value="{{ e.id }}">{{ e.nombre }} ({{ e.area }} · {{ e.puesto }})</option>{% endfor %}
+    </select>
+  </label>
+  <label>Producción total <input name="produccion_total" inputmode="decimal" required></label>
+  <label>Hr productivas <input name="hr_prod" inputmode="decimal" required></label>
+  <label>Hr turno <input name="hr_turno" inputmode="decimal" required></label>
+  <label>Máquina
+    <select name="maquina"><option value="">La del empleado</option>
+      {% for m in maquinas %}<option value="{{ m.clave }}">{{ m.clave }}</option>{% endfor %}
+    </select>
+  </label>
+  <div class="acciones"><button class="primario">Guardar</button></div>
+  <p class="tenue">Si ya existe un registro del mismo empleado en el periodo, se reemplaza.</p>
+</form>
+
+<div class="tabla-scroll">
+<table>
+  <thead><tr><th>Nombre</th><th>Puesto</th><th class="num">Producción total</th><th class="num">Hr prod</th><th class="num">Hr turno</th>
+    <th class="num">Desempeño</th><th class="num">Producción neta</th><th>Máquina</th><th class="num">Neta máquina</th><th class="num">%</th><th></th></tr></thead>
+  <tbody>
+  {% for f in filas %}
+  <tr>
+    <td>{{ f.r.nombre }}</td><td>{{ f.r.area }} · {{ f.r.puesto }}</td>
+    <td class="num">{{ f.r.produccion_total|n(0) }}</td><td class="num">{{ f.r.hr_prod|n }}</td><td class="num">{{ f.r.hr_turno|n }}</td>
+    <td class="num">{{ f.prod.desempeno|n(0) }}</td><td class="num">{{ f.prod.produccion_neta|n(0) }}</td>
+    <td>{{ f.maquina or '—' }}</td>
+    <td class="num">{% if f.maq and f.maq.tiros_turno %}{{ (f.maq.tiros_turno / f.maq.horas_turno)|n(0) }}{% else %}<span class="tenue" title="Captura los tiros requeridos por turno de la máquina">sin dato</span>{% endif %}</td>
+    <td class="num"><b>{{ f.pct|pct }}</b></td>
+    <td><form method="post" action="{{ url_for('borrar_productividad', pid=f.r.id) }}" onsubmit="return confirm('¿Eliminar registro?')">
+      <input type="hidden" name="csrf" value="{{ csrf }}"><button class="peligro mini">Eliminar</button></form></td>
+  </tr>
+  {% else %}<tr><td colspan="11" class="tenue">Sin registros en este periodo.</td></tr>{% endfor %}
+  </tbody>
+</table>
+</div>
+<p class="tenue">Desempeño = producción total ÷ hr productivas · Producción neta = producción total ÷ hr turno · % = producción neta ÷ (tiros requeridos por turno ÷ horas turno).</p>
+{% endblock %}

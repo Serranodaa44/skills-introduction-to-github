@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}Evaluación de Operadores{% endblock %} · {{ cfg.empresa }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<header class="barra">
+  <div class="marca">Evaluación de Operadores <span>{{ cfg.empresa }}</span></div>
+  {% if usuario %}
+  <nav>
+    <a href="{{ url_for('evaluar') }}" class="{{ 'activo' if request.endpoint == 'evaluar' }}">Evaluar</a>
+    {% if usuario.rol == 'admin' %}
+    <a href="{{ url_for('resultados') }}" class="{{ 'activo' if request.endpoint in ('resultados','detalle_empleado') }}">Resultados</a>
+    <a href="{{ url_for('empleados') }}" class="{{ 'activo' if request.endpoint == 'empleados' }}">Empleados</a>
+    <a href="{{ url_for('productividad') }}" class="{{ 'activo' if request.endpoint == 'productividad' }}">Productividad</a>
+    <a href="{{ url_for('configuracion') }}" class="{{ 'activo' if request.endpoint in ('configuracion','plantilla') }}">Configuración</a>
+    {% endif %}
+    <a href="{{ url_for('cuenta') }}" class="{{ 'activo' if request.endpoint == 'cuenta' }}">{{ usuario.nombre }}</a>
+    <a href="{{ url_for('logout') }}">Salir</a>
+  </nav>
+  {% endif %}
+</header>
+<main>
+  {% with mensajes = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in mensajes %}<div class="aviso {{ cat }}">{{ msg }}</div>{% endfor %}
+  {% endwith %}
+  {% block contenido %}{% endblock %}
+</main>
+</body>
+</html>

@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block titulo %}{{ emp.nombre }}{% endblock %}
+{% block contenido %}
+<p><a href="{{ url_for('resultados', periodo=periodo) }}">← Resultados</a></p>
+<div class="encabezado">
+  <h1>{{ emp.nombre }} <small class="tenue">{{ emp.area }} · {{ emp.puesto }}</small></h1>
+  {% include "_periodo.html" %}
+</div>
+
+<div class="kpis">
+  <div><span>Puntos</span><b>{{ res.total|n }}</b></div>
+  <div><span>Grado final</span><b class="grado g-{{ res.grado[:1] }}">{{ res.grado }}</b></div>
+  <div><span>Sueldo sugerido</span><b>{{ res.sueldo_sugerido|dinero }}</b></div>
+  <div><span>Sueldo actual</span><b>{{ emp.sueldo_actual|dinero }}</b></div>
+  <div><span>Antigüedad</span><b>{{ (emp.antiguedad|n ~ ' años') if emp.antiguedad is not none else '—' }}</b></div>
+  <div><span>Evaluaciones</span><b>{{ res.num_evaluaciones }}</b></div>
+</div>
+
+<div class="tabla-scroll">
+<table>
+  <thead><tr><th>Categoría</th><th>Sub-categoría</th><th class="num">Promedio</th><th>Origen</th>
+    {% set et = puesto.etiquetas.split(',') %}
+    <th class="num">{{ et[0] }} hasta</th><th class="num">{{ et[1] }} hasta</th><th class="num">{{ et[2] }} hasta</th>
+    <th class="num">Puntos</th><th>Grado</th></tr></thead>
+  <tbody>
+  {% for s in res.subcategorias %}
+    <tr>
+      <td>{{ s.categoria }}</td><td>{{ s.nombre }}</td>
+      <td class="num">{{ s.promedio|n(2) }}</td><td class="tenue">{{ s.origen }}</td>
+      <td class="num">{{ s.limites[0]|n }}</td><td class="num">{{ s.limites[1]|n }}</td><td class="num">{{ s.limites[2]|n }}</td>
+      <td class="num"><b>{{ s.puntos|n }}</b></td>
+      <td><span class="grado">{{ s.grado }}</span>{% if s.grado == '#$' %} <span class="tenue">excede el máximo</span>{% endif %}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+  <tfoot><tr><td colspan="7">Total</td><td class="num"><b>{{ res.total|n }}</b></td><td>{{ res.grado }}</td></tr></tfoot>
+</table>
+</div>
+
+<div class="dos-col">
+  <div class="tarjeta">
+    <h2>Tabulador del puesto</h2>
+    <table class="compacta">
+      <tr><td>Sueldo mínimo</td><td class="num">{{ puesto.sueldo_min|dinero }}</td></tr>
+      <tr><td>Sueldo máximo</td><td class="num">{{ puesto.sueldo_max|dinero }}</td></tr>
+      <tr><td>Rango de puntos</td><td class="num">{{ puesto.pts_base|n(0) }} – {{ puesto.pts_tope|n(0) }}</td></tr>
+      <tr><td>Costo por punto</td><td class="num">{{ res.costo_por_punto|dinero }}</td></tr>
+    </table>
+    <p class="tenue">Sueldo sugerido = mínimo + costo por punto × (puntos − {{ puesto.pts_base|n(0) }}), sin pasar del máximo.</p>
+  </div>
+  <div class="tarjeta">
+    <h2>Productividad</h2>
+    {% if prod %}
+    <table class="compacta">
+      <tr><td>Producción total</td><td class="num">{{ fila_prod.produccion_total|n(0) }}</td></tr>
+      <tr><td>Desempeño (por hr productiva)</td><td class="num">{{ prod.desempeno|n(0) }}</td></tr>
+      <tr><td>Producción neta (por hr turno)</td><td class="num">{{ prod.produccion_neta|n(0) }}</td></tr>
+      <tr><td>Productividad %</td><td class="num">{{ res.productividad_pct|pct }}</td></tr>
+    </table>
+    {% if res.productividad_pct is none %}<p class="tenue">La máquina no tiene "tiros requeridos por turno"; captúralos en Configuración para calcular el %.</p>{% endif %}
+    {% else %}<p class="tenue">Sin datos de productividad en este periodo.</p>{% endif %}
+  </div>
+</div>
+
+<h2>Evaluaciones recibidas</h2>
+<div class="tabla-scroll">
+<table class="compacta">
+  <thead><tr><th>Fecha</th><th>Evaluador</th>
+    {% for s in res.subcategorias %}<th class="num" title="{{ s.nombre }}">{{ loop.index }}</th>{% endfor %}
+    <th>Comentarios</th><th></th></tr></thead>
+  <tbody>
+  {% for ev in evals %}
+    <tr><td>{{ ev.fecha }}</td><td>{{ ev.evaluador }}</td>
+      {% for s in res.subcategorias %}<td class="num">{{ resp.get(ev.id, {}).get(s.id, '')|int if resp.get(ev.id, {}).get(s.id) else '' }}</td>{% endfor %}
+      <td>{{ ev.comentarios }}</td>
+      <td><form method="post" action="{{ url_for('borrar_evaluacion', ev_id=ev.id) }}" onsubmit="return confirm('¿Eliminar esta evaluación?')">
+        <input type="hidden" name="csrf" value="{{ csrf }}"><button class="peligro mini">Eliminar</button></form></td></tr>
+  {% else %}
+    <tr><td colspan="20" class="tenue">Nadie ha evaluado a esta persona en el periodo {{ periodo }}.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+<p class="tenue">Columnas: {% for s in res.subcategorias %}{{ loop.index }} = {{ s.nombre }}{{ ', ' if not loop.last }}{% endfor %}.</p>
+{% endblock %}

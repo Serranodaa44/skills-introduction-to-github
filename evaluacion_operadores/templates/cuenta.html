@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block titulo %}Mi cuenta{% endblock %}
+{% block contenido %}
+<div class="tarjeta angosta">
+  <h1>Mi cuenta</h1>
+  <p class="tenue">{{ usuario.nombre }} · {{ usuario.usuario }} · {{ usuario.rol }}</p>
+  <form method="post">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label>Contraseña actual <input name="actual" type="password" required></label>
+    <label>Nueva contraseña <input name="nueva" type="password" minlength="6" required></label>
+    <button class="primario">Cambiar contraseña</button>
+  </form>
+</div>
+{% endblock %}

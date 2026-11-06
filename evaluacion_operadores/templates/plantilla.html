@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block titulo %}{{ pl.nombre }}{% endblock %}
+{% block contenido %}
+<p><a href="{{ url_for('configuracion') }}#plantillas">← Configuración</a></p>
+<h1>Plantilla: {{ pl.nombre }}</h1>
+<p class="tenue">Usada por: {% for p in puestos %}{{ p.area }} · {{ p.puesto }}{{ ', ' if not loop.last }}{% else %}ningún puesto{% endfor %}</p>
+
+<form method="post" class="tarjeta">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <div class="formulario-linea">
+    <label>Nombre <input name="nombre" value="{{ pl.nombre }}"></label>
+    <label>Niveles por subcategoría (bajo,medio,alto) <input name="etiquetas" value="{{ pl.etiquetas }}"></label>
+    <label>Grado mínimo del puesto
+      <select name="grado_minimo"><option value="">Ninguno</option>
+        {% for l in letras %}<option {{ 'selected' if pl.grado_minimo == l }}>{{ l }}</option>{% endfor %}</select>
+    </label>
+    <label>Grado máximo del puesto
+      <select name="grado_maximo"><option value="">Ninguno</option>
+        {% for l in letras %}<option {{ 'selected' if pl.grado_maximo == l }}>{{ l }}</option>{% endfor %}</select>
+    </label>
+  </div>
+  {% if (suma_cat - 1)|abs > 0.001 %}<div class="aviso error">Las ponderaciones de las categorías suman {{ (suma_cat * 100)|round(1) }}% (deben sumar 100%).</div>{% endif %}
+  <p class="tenue">Puntos totales posibles: <b>{{ total_pts|n }}</b></p>
+
+  {% set et = pl.etiquetas.split(',') %}
+  {% for cat in cats %}
+  <fieldset>
+    <legend>
+      <input name="cnombre_{{ cat.id }}" value="{{ cat.nombre }}">
+      <input name="cpeso_{{ cat.id }}" value="{{ (cat.peso * 100)|round(2) }}" class="corto"> %
+      <label class="check"><input type="checkbox" name="cborrar_{{ cat.id }}" value="1"> borrar</label>
+    </legend>
+    {% if (cat.suma_sub - 1)|abs > 0.001 %}<div class="aviso error">Las subcategorías suman {{ (cat.suma_sub * 100)|round(1) }}% (deben sumar 100%).</div>{% endif %}
+    <div class="tabla-scroll">
+    <table class="editable">
+      <thead><tr><th>Sub-categoría</th><th>Descripción</th><th>D%</th><th>Fuente</th><th class="num">{{ et[0] }}</th><th class="num">{{ et[1] }}</th><th class="num">{{ et[2] }}</th><th>Borrar</th></tr></thead>
+      <tbody>
+      {% for s in cat.subcategorias %}
+      <tr>
+        <td><input name="snombre_{{ s.id }}" value="{{ s.nombre }}"></td>
+        <td><input name="sdesc_{{ s.id }}" value="{{ s.descripcion }}"></td>
+        <td><input name="speso_{{ s.id }}" value="{{ (s.peso * 100)|round(2) }}" class="corto"></td>
+        <td><select name="sfuente_{{ s.id }}">
+          <option value="evaluacion" {{ 'selected' if s.fuente == 'evaluacion' }}>Evaluación</option>
+          <option value="productividad" {{ 'selected' if s.fuente == 'productividad' }}>Productividad</option></select></td>
+        <td class="num">{{ s.limites[0]|n }}</td><td class="num">{{ s.limites[1]|n }}</td><td class="num">{{ s.limites[2]|n }}</td>
+        <td><input type="checkbox" name="sborrar_{{ s.id }}" value="1"></td>
+      </tr>
+      {% endfor %}
+      <tr class="nuevo"><td><input name="nueva_sub_{{ cat.id }}" placeholder="Nueva sub-categoría"></td><td></td>
+        <td><input name="nueva_speso_{{ cat.id }}" class="corto" placeholder="%"></td><td colspan="5"></td></tr>
+      </tbody>
+    </table>
+    </div>
+  </fieldset>
+  {% endfor %}
+  <div class="formulario-linea">
+    <label>Nueva categoría <input name="nueva_cat"></label>
+    <label>Ponderación % <input name="nueva_cat_peso" class="corto"></label>
+  </div>
+  <div class="acciones"><button class="primario" name="accion" value="guardar">Guardar plantilla</button></div>
+</form>
+
+<form method="post" class="tarjeta formulario-linea">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <h2>Duplicar plantilla</h2>
+  <label>Nombre de la copia <input name="nuevo_nombre" placeholder="p. ej. Operador (Impresión)"></label>
+  <div class="acciones"><button name="accion" value="duplicar">Duplicar</button></div>
+</form>
+{% endblock %}

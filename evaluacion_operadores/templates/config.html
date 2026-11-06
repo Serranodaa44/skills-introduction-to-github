@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block titulo %}Configuración{% endblock %}
+{% block contenido %}
+<h1>Configuración</h1>
+<nav class="indice"><a href="#general">General y grados</a><a href="#plantillas">Criterios</a><a href="#puestos">Tabulador</a><a href="#maquinas">Máquinas</a><a href="#usuarios">Usuarios</a></nav>
+
+<form method="post" class="tarjeta" id="general">
+  <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="seccion" value="general">
+  <h2>General</h2>
+  <div class="formulario-linea">
+    <label>Empresa <input name="empresa" value="{{ cfg.empresa }}"></label>
+    <label>Periodo actual <input name="periodo_actual" value="{{ cfg.periodo_actual }}" placeholder="p. ej. 2026-S2"></label>
+    <label>Escala de puntos <input name="escala" inputmode="decimal" value="{{ cfg.escala }}"></label>
+    <label>Escala de respuesta (1 a…) <input name="escala_respuesta" inputmode="numeric" value="{{ cfg.escala_respuesta }}"></label>
+    <label>Puntos máximos <input name="puntos_max" inputmode="decimal" value="{{ cfg.puntos_max }}"></label>
+  </div>
+  <h3>Escalones porcentuales de grado</h3>
+  <div class="formulario-linea">
+    {% for gr in grados %}<label>Grado {{ gr.letra }} desde (%) <input name="grado_{{ gr.letra }}" inputmode="decimal" value="{{ (gr.pct * 100)|round(2) }}"></label>{% endfor %}
+  </div>
+  <p class="tenue">Con estos valores: {% for l, d, h in bandas %}{{ l }} = {{ d|n(0) }}–{{ h|n(0) }} pts{{ ' · ' if not loop.last }}{% endfor %}</p>
+  <div class="acciones"><button class="primario">Guardar</button></div>
+</form>
+
+<section class="tarjeta" id="plantillas">
+  <h2>Plantillas de criterios</h2>
+  <p class="tenue">Cada puesto usa una plantilla con categorías, subcategorías y ponderaciones. Duplica una plantilla para crear criterios específicos de otra área.</p>
+  <ul>{% for p in plantillas %}<li><a href="{{ url_for('plantilla', pid=p.id) }}">{{ p.nombre }}</a> <span class="tenue">niveles {{ p.etiquetas }}</span></li>{% endfor %}</ul>
+</section>
+
+<form method="post" class="tarjeta" id="puestos">
+  <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="seccion" value="puestos">
+  <h2>Tabulador de personal de planta</h2>
+  <div class="tabla-scroll">
+  <table class="editable">
+    <thead><tr><th>ID</th><th>Área</th><th>Puesto</th><th>Mínimo</th><th>Máximo</th><th>Pts base</th><th>Pts tope</th><th>$/pto</th><th>Plantilla</th><th>Borrar</th></tr></thead>
+    <tbody>
+    {% for p in puestos %}
+    <tr>
+      <td>{{ p.codigo }}</td>
+      <td><input name="area_{{ p.id }}" value="{{ p.area }}"></td>
+      <td><input name="puesto_{{ p.id }}" value="{{ p.puesto }}"></td>
+      <td><input name="min_{{ p.id }}" value="{{ p.sueldo_min|round(2) }}" class="corto"></td>
+      <td><input name="max_{{ p.id }}" value="{{ p.sueldo_max|round(2) }}" class="corto"></td>
+      <td><input name="base_{{ p.id }}" value="{{ p.pts_base|round(2) }}" class="corto"></td>
+      <td><input name="tope_{{ p.id }}" value="{{ p.pts_tope|round(2) }}" class="corto"></td>
+      <td class="num">{{ ((p.sueldo_max - p.sueldo_min) / (p.pts_tope - p.pts_base) if p.pts_tope > p.pts_base else 0)|dinero }}</td>
+      <td><select name="plantilla_{{ p.id }}">{% for pl in plantillas %}<option value="{{ pl.id }}" {{ 'selected' if pl.id == p.plantilla_id }}>{{ pl.nombre }}</option>{% endfor %}</select></td>
+      <td><input type="checkbox" name="borrar_{{ p.id }}" value="1"></td>
+    </tr>
+    {% endfor %}
+    <tr class="nuevo">
+      <td>Nuevo</td>
+      <td><input name="nuevo_area" placeholder="Área"></td>
+      <td><input name="nuevo_puesto" placeholder="Puesto"></td>
+      <td><input name="nuevo_min" class="corto"></td><td><input name="nuevo_max" class="corto"></td>
+      <td><input name="nuevo_base" class="corto" value="150"></td><td><input name="nuevo_tope" class="corto" value="300"></td>
+      <td></td>
+      <td><select name="nuevo_plantilla">{% for pl in plantillas %}<option value="{{ pl.id }}">{{ pl.nombre }}</option>{% endfor %}</select></td><td></td>
+    </tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="tenue">Sueldo sugerido = mínimo + $/pto × (puntos − pts base), sin pasar del máximo. $/pto = (máximo − mínimo) ÷ (pts tope − pts base).</p>
+  <div class="acciones"><button class="primario">Guardar tabulador</button></div>
+</form>
+
+<form method="post" class="tarjeta" id="maquinas">
+  <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="seccion" value="maquinas">
+  <h2>Máquinas</h2>
+  <div class="tabla-scroll">
+  <table class="editable">
+    <thead><tr><th>Clave</th><th>Descripción</th><th>Tiros requeridos por turno</th><th>Horas turno</th><th>Productividad neta</th><th>Borrar</th></tr></thead>
+    <tbody>
+    {% for m in maquinas %}
+    <tr>
+      <td>{{ m.clave }}</td>
+      <td><input name="desc_{{ m.clave }}" value="{{ m.descripcion }}"></td>
+      <td><input name="tiros_{{ m.clave }}" value="{{ m.tiros_turno|int if m.tiros_turno is not none }}" class="corto"></td>
+      <td><input name="horas_{{ m.clave }}" value="{{ m.horas_turno|round(2) }}" class="corto"></td>
+      <td class="num">{{ (m.tiros_turno / m.horas_turno)|n(0) if m.tiros_turno else '—' }}</td>
+      <td><input type="checkbox" name="borrar_{{ m.clave }}" value="1"></td>
+    </tr>
+    {% endfor %}
+    <tr class="nuevo"><td><input name="nueva_clave" placeholder="Clave" class="corto"></td><td><input name="nueva_desc"></td>
+      <td><input name="nueva_tiros" class="corto"></td><td><input name="nueva_horas" value="12" class="corto"></td><td></td><td></td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="acciones"><button class="primario">Guardar máquinas</button></div>
+</form>
+
+<section class="tarjeta" id="usuarios">
+  <h2>Usuarios</h2>
+  <p class="tenue"><b>Evaluador</b>: sólo puede capturar evaluaciones. <b>Admin (RH)</b>: además ve resultados, sueldos y configura.</p>
+  <div class="tabla-scroll">
+  <table>
+    <thead><tr><th>Nombre</th><th>Usuario</th><th>Rol</th><th>Estado</th><th>Acciones</th></tr></thead>
+    <tbody>
+    {% for u in usuarios %}
+    <tr class="{{ 'inactivo' if not u.activo }}">
+      <td>{{ u.nombre }}</td><td>{{ u.usuario }}</td><td>{{ u.rol }}</td><td>{{ 'Activo' if u.activo else 'Inactivo' }}</td>
+      <td class="acciones-fila">
+        <form method="post" action="{{ url_for('usuarios') }}"><input type="hidden" name="csrf" value="{{ csrf }}">
+          <input type="hidden" name="id" value="{{ u.id }}">
+          <button name="accion" value="{{ 'desactivar' if u.activo else 'activar' }}" class="mini">{{ 'Desactivar' if u.activo else 'Activar' }}</button>
+        </form>
+        <form method="post" action="{{ url_for('usuarios') }}"><input type="hidden" name="csrf" value="{{ csrf }}">
+          <input type="hidden" name="id" value="{{ u.id }}">
+          <input name="password" type="password" placeholder="Nueva contraseña" minlength="6" class="corto">
+          <button name="accion" value="reset" class="mini">Restablecer</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <form method="post" action="{{ url_for('usuarios') }}" class="formulario-linea">
+    <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="crear">
+    <h3>Nuevo usuario</h3>
+    <label>Nombre <input name="nombre"></label>
+    <label>Usuario <input name="usuario" required></label>
+    <label>Contraseña <input name="password" type="password" minlength="6" required></label>
+    <label>Rol <select name="rol"><option value="evaluador">Evaluador</option><option value="admin">Admin (RH)</option></select></label>
+    <div class="acciones"><button class="primario">Crear usuario</button></div>
+  </form>
+</section>
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block titulo %}Resultados{% endblock %}
+{% block contenido %}
+<div class="encabezado">
+  <h1>Resultados</h1>
+  <div>
+    <a class="boton" href="{{ url_for('exportar_resultados', periodo=periodo) }}">Exportar resultados (CSV)</a>
+    <a class="boton" href="{{ url_for('exportar_respuestas', periodo=periodo) }}">Exportar respuestas (CSV)</a>
+  </div>
+</div>
+<form method="get" class="filtros">
+  <label>Periodo
+    <input name="periodo" list="lista-periodos" value="{{ periodo }}">
+    <datalist id="lista-periodos">{% for p in periodos %}<option value="{{ p }}">{% endfor %}</datalist>
+  </label>
+  <label>Área
+    <select name="area"><option value="">Todas</option>
+      {% for a in areas %}<option {{ 'selected' if a == area }}>{{ a }}</option>{% endfor %}
+    </select>
+  </label>
+  <button>Ver</button>
+</form>
+
+<div class="tabla-scroll">
+<table>
+  <thead><tr>
+    <th>Nombre</th><th>Área / Puesto</th><th class="num">Eval.</th><th class="num">Product.</th>
+    <th class="num">Puntos</th><th>Grado</th><th class="num">Sueldo sugerido</th><th class="num">Sueldo actual</th><th class="num">Diferencia</th>
+  </tr></thead>
+  <tbody>
+  {% for f in filas %}
+    <tr>
+      <td><a href="{{ url_for('detalle_empleado', eid=f.emp.id, periodo=periodo) }}">{{ f.emp.nombre }}</a>
+        {% if f.res.num_evaluaciones and not f.res.completo %}<span class="etiqueta aviso-mini" title="Hay criterios sin calificar">incompleto</span>{% endif %}</td>
+      <td>{{ f.emp.area }} · {{ f.emp.puesto }}</td>
+      <td class="num">{{ f.res.num_evaluaciones }}</td>
+      <td class="num">{{ f.res.productividad_pct|pct }}</td>
+      <td class="num"><b>{{ f.res.total|n }}</b></td>
+      <td><span class="grado g-{{ f.res.grado[:1] }}">{{ f.res.grado }}</span></td>
+      <td class="num">{{ f.res.sueldo_sugerido|dinero }}</td>
+      <td class="num">{{ f.emp.sueldo_actual|dinero }}</td>
+      <td class="num {{ 'positivo' if f.dif and f.dif > 0 else 'negativo' if f.dif and f.dif < 0 }}">{{ f.dif|dinero }}</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="9" class="tenue">No hay empleados. Agrégalos en <a href="{{ url_for('empleados') }}">Empleados</a>.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+
+<details class="tarjeta">
+  <summary>Tabla de grados</summary>
+  <table class="compacta">
+    <tr><th>Grado</th><th class="num">Desde</th><th class="num">Hasta</th></tr>
+    {% for l, d, h in bandas %}<tr><td>{{ l }}</td><td class="num">{{ d|n(0) }}</td><td class="num">{{ h|n(0) }}</td></tr>{% endfor %}
+  </table>
+</details>
+{% endblock %}

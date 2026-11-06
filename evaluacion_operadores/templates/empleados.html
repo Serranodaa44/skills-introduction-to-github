@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block titulo %}Empleados{% endblock %}
+{% block contenido %}
+<h1>Empleados</h1>
+<form method="post" class="tarjeta formulario-linea">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  {% if editar %}<input type="hidden" name="id" value="{{ editar.id }}">{% endif %}
+  <h2>{{ 'Editar' if editar else 'Agregar' }} empleado</h2>
+  <label>Nombre <input name="nombre" required value="{{ editar.nombre if editar }}"></label>
+  <label>Área · Puesto
+    <select name="puesto_id" required>
+      {% for p in puestos %}<option value="{{ p.id }}" {{ 'selected' if editar and editar.puesto_id == p.id }}>{{ p.area }} · {{ p.puesto }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>Máquina
+    <select name="maquina"><option value="">—</option>
+      {% for m in maquinas %}<option value="{{ m.clave }}" {{ 'selected' if editar and editar.maquina == m.clave }}>{{ m.clave }}{{ ' · ' ~ m.descripcion if m.descripcion }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>Antigüedad (años) <input name="antiguedad" inputmode="decimal" value="{{ editar.antiguedad if editar and editar.antiguedad is not none }}"></label>
+  <label>Sueldo actual <input name="sueldo_actual" inputmode="decimal" value="{{ editar.sueldo_actual if editar and editar.sueldo_actual is not none }}"></label>
+  <label class="check"><input type="checkbox" name="activo" value="1" {{ 'checked' if not editar or editar.activo }}> Activo</label>
+  <div class="acciones">
+    {% if editar %}<a href="{{ url_for('empleados') }}">Cancelar</a>{% endif %}
+    <button class="primario">{{ 'Guardar cambios' if editar else 'Agregar' }}</button>
+  </div>
+</form>
+
+<div class="tabla-scroll">
+<table>
+  <thead><tr><th>Nombre</th><th>Área</th><th>Puesto</th><th>Máquina</th><th class="num">Antigüedad</th><th class="num">Sueldo actual</th><th>Estado</th><th></th></tr></thead>
+  <tbody>
+  {% for e in empleados %}
+  <tr class="{{ 'inactivo' if not e.activo }}">
+    <td>{{ e.nombre }}</td><td>{{ e.area }}</td><td>{{ e.puesto }}</td><td>{{ e.maquina or '—' }}</td>
+    <td class="num">{{ e.antiguedad|n }}</td><td class="num">{{ e.sueldo_actual|dinero }}</td>
+    <td>{{ 'Activo' if e.activo else 'Inactivo' }}</td>
+    <td><a href="{{ url_for('empleados', editar=e.id) }}">Editar</a></td>
+  </tr>
+  {% else %}<tr><td colspan="8" class="tenue">Sin empleados todavía.</td></tr>{% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

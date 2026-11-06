@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block titulo %}Evaluar{% endblock %}
+{% block contenido %}
+<h1>Evaluar personal <small class="tenue">Periodo {{ periodo }}</small></h1>
+
+{% if not emp %}
+<p class="tenue">Elige a la persona que vas a evaluar. Calificas cada criterio del 1 al {{ escala }}; puedes volver a abrir una evaluación para corregirla.</p>
+{% if not empleados %}<div class="aviso">Aún no hay empleados registrados. Un administrador debe darlos de alta en <b>Empleados</b>.</div>{% endif %}
+<div class="lista-empleados">
+  {% for e in empleados %}
+  <a class="item {{ 'hecho' if e.id in hechas }}" href="{{ url_for('evaluar', empleado_id=e.id, periodo=periodo) }}">
+    <b>{{ e.nombre }}</b><span>{{ e.area }} · {{ e.puesto }}</span>
+    <em>{{ '✓ Evaluado' if e.id in hechas else 'Pendiente' }}</em>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<form method="post" class="tarjeta">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <input type="hidden" name="empleado_id" value="{{ emp.id }}">
+  <input type="hidden" name="periodo" value="{{ periodo }}">
+  <h2>{{ emp.nombre }} <small class="tenue">{{ emp.area }} · {{ emp.puesto }}</small></h2>
+  <p class="tenue">1 = Muy bajo · {{ escala }} = Excelente. Deja en blanco lo que no puedas evaluar.</p>
+  {% for cat in categorias %}
+  <fieldset>
+    <legend>{{ cat.nombre }}</legend>
+    {% for s in cat.subcategorias %}
+    <div class="criterio">
+      <div>
+        <b>{{ s.nombre }}</b>
+        {% if s.descripcion %}<div class="tenue">{{ s.descripcion }}</div>{% endif %}
+      </div>
+      <div class="escala" role="radiogroup" aria-label="{{ s.nombre }}">
+        {% for v in range(1, escala + 1) %}
+        <label><input type="radio" name="sub_{{ s.id }}" value="{{ v }}" {{ 'checked' if previas.get(s.id) == v }}><span>{{ v }}</span></label>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  </fieldset>
+  {% endfor %}
+  <label>Comentarios (opcional)<textarea name="comentarios" rows="3">{{ comentarios }}</textarea></label>
+  <div class="acciones">
+    <a href="{{ url_for('evaluar', periodo=periodo) }}">Cancelar</a>
+    <button class="primario">Guardar evaluación</button>
+  </div>
+</form>
+{% endif %}
+{% endblock %}
